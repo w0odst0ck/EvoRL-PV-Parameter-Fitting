@@ -1,5 +1,10 @@
 clc
 clear
+%% Add paths
+addpath(genpath('../algorithms'));
+addpath(genpath('../model'));
+addpath(genpath('../utils'));
+addpath(genpath('../fomcon-1.21b/1.21b'));
 % 
 %% 
 % The code of the manuscript of 
@@ -19,7 +24,7 @@ clear
 % manuscripts.
 %% 
 %data from figure 5 2011 paper
-M = dlmread('Load_current_2011_paper_big_time.csv');
+M = dlmread('../data/Load_current_2011_paper_big_time.csv');
 data_length=length(M(:,1));
 fit_length=data_length;
 tim_raw=M(1:fit_length,1);
@@ -80,16 +85,16 @@ range= [lb; ub];
 dim=length(lb);
 for j=1:Number_of_runs
     tic;
-   [Best_pos(j,:),Best_score(j)]=RLSEDE(N , range ,dim,Max_iter,NEF,fobj);   
-   RLSEDE_time(j)=toc;
+   [Best_pos(j,:),Best_score(j)]=SEDE(N , range ,dim,Max_iter,NEF,fobj);   
+   SEDE_time(j)=toc;
   end
-save('RLSEDE_FO_dynamic') % save results of the fractional order model
+save('../data/SEDE_FO_dynamic') % save results of the fractional order model
 
-%save('RLSEDE_IO_dynamic') % save results of the integer order model
+%save('../data/SEDE_IO_dynamic') % save results of the integer order model
 % % %
 %% For Integer order m  model
 % 
-% load('RLSEDE_IO_dynamic.mat')
+% load('../data/HCLPSO_IO_dynamic.mat')
 % [Mm  II]=min(Best_score);
 % Mm_std=std(Best_score);
 % x=Best_pos(II,:);
@@ -104,11 +109,11 @@ save('RLSEDE_FO_dynamic') % save results of the fractional order model
 A_L=0.762; A_C=0.05; i_inf=0.712; T_c=3.186e-6;
 T_l=0.373e-6;
 % i_load_integer=-A_L*exp(-tim/T_l)+A_C*exp(-tim/T_l)+i_inf;
-% RLSEDE_IO_rms=rms (I_Load_inter-Y2');
+% HCLPSO_IO_rms=rms (I_Load_inter-Y2');
 % inte  =rms (I_Load_inter-i_load_integer) ;
 % % % % % 
 %% For fractional oder model 
-load('RLSEDE_FO_dynamic.mat')
+load('../data/SEDE_FO_dynamic.mat')
 [Mm  II]=min(Best_score);
 Mm_std=std(Best_score);
 x=Best_pos(II,:);
@@ -127,6 +132,6 @@ tf2=fotf([1,-a11,-a22,a11*a22-a12*a21]...
 Y2=step(tf2,tim);
 Y2=Y2*V_oc;% compensate for non-unity step
 i_load_integer=-A_L*exp(-tim/T_l)+A_C*exp(-tim/T_l)+i_inf;
-RLSEDE_FO_rms=rms (I_Load_inter-Y2');
+SEDE_FO_rms=rms (I_Load_inter-Y2');
 Frac  =rms (I_Load_inter-i_load_integer) ;
 

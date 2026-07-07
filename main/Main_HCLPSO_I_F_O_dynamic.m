@@ -1,5 +1,10 @@
 clc
 clear
+%% Add paths
+addpath(genpath('../algorithms'));
+addpath(genpath('../model'));
+addpath(genpath('../utils'));
+addpath(genpath('../fomcon-1.21b/1.21b'));
 % 
 %% 
 % The code of the manuscript of 
@@ -15,11 +20,15 @@ clear
 % 2- AbdelAty, A.M., Radwan, A.G., Elwakil, A.S. and Psychalinos, C., 2018. Transient and steady-state response of a fractional-order dynamic PV model under different loads.
 % Journal of Circuits, Systems and Computers, 27(02), p.1850023.
 
+% The algorithm based on the manuscript of 
+% Lynn, N. and Suganthan, P.N., 2015. Heterogeneous comprehensive learning particle swarm optimization with enhanced exploration and exploitation. 
+% Swarm and Evolutionary Computation, 24, pp.11-24.
+
 % If you use the codes of the models , pls you should cite the emntioned
 % manuscripts.
 %% 
 %data from figure 5 2011 paper
-M = dlmread('Load_current_2011_paper_big_time.csv');
+M = dlmread('../data/Load_current_2011_paper_big_time.csv');
 data_length=length(M(:,1));
 fit_length=data_length;
 tim_raw=M(1:fit_length,1);
@@ -72,7 +81,7 @@ fobj=@(x)rms((FO_Load_current_step(x,R_s,R_L,V_oc,tim,I_Load_inter)));
  ub=[20,600e-7,100e-6,1.1,1.1];
 % 
 %% Main
-Number_of_runs=30;
+Number_of_runs=10;
 N=30; % Number of search agents
 Max_iter=200;% This should be equal or greater than OPTIONS.Maxgen in Init.m file
 NEF=20000;
@@ -80,16 +89,16 @@ range= [lb; ub];
 dim=length(lb);
 for j=1:Number_of_runs
     tic;
-   [Best_pos(j,:),Best_score(j)]=RLDE(N , range ,dim,Max_iter,NEF,fobj);   
-   RLDE_time(j)=toc;
+   [Best_pos(j,:),Best_score(j)]=HCLPSO(N , range ,dim,Max_iter,NEF,fobj);   
+   HCLPSO_time(j)=toc;
   end
-save('RLDE_FO_dynamic') % save results of the fractional order model
+save('../data/HCLPSO_FO_dynamic') % save results of the fractional order model
 
-%save('RLDE_IO_dynamic') % save results of the integer order model
+%save('../data/HCLPSO_IO_dynamic') % save results of the integer order model
 % % %
 %% For Integer order m  model
 % 
-% load('RLDE_IO_dynamic.mat')
+% load('../data/HCLPSO_IO_dynamic.mat')
 % [Mm  II]=min(Best_score);
 % Mm_std=std(Best_score);
 % x=Best_pos(II,:);
@@ -104,11 +113,11 @@ save('RLDE_FO_dynamic') % save results of the fractional order model
 A_L=0.762; A_C=0.05; i_inf=0.712; T_c=3.186e-6;
 T_l=0.373e-6;
 % i_load_integer=-A_L*exp(-tim/T_l)+A_C*exp(-tim/T_l)+i_inf;
-% RLDE_IO_rms=rms (I_Load_inter-Y2');
+% HCLPSO_IO_rms=rms (I_Load_inter-Y2');
 % inte  =rms (I_Load_inter-i_load_integer) ;
 % % % % % 
 %% For fractional oder model 
-load('RLDE_FO_dynamic.mat')
+load('../data/HCLPSO_FO_dynamic.mat')
 [Mm  II]=min(Best_score);
 Mm_std=std(Best_score);
 x=Best_pos(II,:);
@@ -127,6 +136,46 @@ tf2=fotf([1,-a11,-a22,a11*a22-a12*a21]...
 Y2=step(tf2,tim);
 Y2=Y2*V_oc;% compensate for non-unity step
 i_load_integer=-A_L*exp(-tim/T_l)+A_C*exp(-tim/T_l)+i_inf;
-RLDE_FO_rms=rms (I_Load_inter-Y2');
+HCLPSO_FO_rms=rms (I_Load_inter-Y2');
 Frac  =rms (I_Load_inter-i_load_integer) ;
+% % % 
+%% Plot the fitting and error
+
+figure (1)
+plot(M(:,1),M(:,2),'o','MarkerEdgeColor','b','MarkerSize',2)
+hold on
+plot(tim,Y2,'r','linewidth',2)
+box on
+drawnow;
+grid on
+fontsize=32;
+xlabel('time','FontSize',fontsize,'FontName','Times,New Roman')
+ylabel('i_L(t)','FontSize',fontsize,'FontName','Times New,Roman')
+set(gca,'FontSize',fontsize,'FontName','Times New,Roman');
+orient landscape; set(gcf,'PaperUnits', 'centimeters'); set(gcf, 'PaperType', 'A4');
+set(gcf, 'PaperPositionMode','manual'); set(gcf, 'units','normalized', 'outerposition', [0 0 1 1])
+legend('Measured Data',' HCLPSO','location','southeast')
+box on
+drawnow;
+grid on
+figname=strcat('Dynamic_HCLPSO');
+savefig(strcat(figname,'.fig'));
+saveas(gcf,strcat(figname,'.pdf'),'pdf')
+print(figname,'-dpdf','-fillpage')
+
+% %error
+figure (2)
+plot(tim,abs(I_Load_inter-Y2(:,1)'),'linewidth',2,'Color',colors(3,:))
+hold off fontsize=32;
+xlabel('time','FontSize',fontsize,'FontName','Times New,Roman')
+ylabel('Error(t)','FontSize',fontsize,'FontName','Times New,Roman')
+set(gca,'FontSize',fontsize,'FontName','Times New,Roman');
+orient landscape; set(gcf,'PaperUnits', 'centimeters'); set(gcf, 'PaperType', 'A4');
+set(gcf, 'PaperPositionMode','manual'); set(gcf, 'units','normalized', 'outerposition', [0 0 1 1])
+set(gca, 'YScale', 'log')
+axis tight
+drawnow;
+figname=strcat('Error_comparison');
+savefig(strcat(figname,'.fig'));
+print(figname,'-dpdf','-fillpage')
 
